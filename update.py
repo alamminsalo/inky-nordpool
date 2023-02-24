@@ -20,11 +20,19 @@ def vat_fin() -> float:
 
 def get_spotprices() -> pd.DataFrame:
     prices_spot = elspot.Prices()
-    end_date = date.today()# + timedelta(days=1)
-    prices = prices_spot.hourly(end_date=end_date, areas=['FI'])
-    df = pd.DataFrame(prices['areas']['FI']['values'])
+
+    prices_today = prices_spot.hourly(end_date=date.today(), areas=['FI'])['areas']['FI']['values']
+    df = pd.DataFrame(prices_today)
+
+    # when current time is past 6pm,
+    # also fetch next day and slice the middle 24-hour period
+    if datetime.now().hour >= 18:
+        prices_tomorrow = prices_spot.hourly(areas=['FI'])['areas']['FI']['values']
+        df = pd.concat([df, pd.DataFrame(prices_tomorrow)], ignore_index=True).iloc[12:36]
+
     df['start'] = df['start'].dt.tz_convert('Europe/Helsinki')
     df['end'] = df['end'].dt.tz_convert('Europe/Helsinki')
+
     # Convert price to EUR/KWh and add VAT
     df['value'] *= 0.001 * vat_fin()
     df['cents_kwh'] = df['value'] * 100
@@ -47,6 +55,10 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
         'black',
     )
     plt.xticks(prices[prices.index % 2 != 0].hour)
+
+    # If not starting from the first hour draw vertical line to midnight
+    if prices.hour.values[0] != "00":
+        ax.axvline("00")
 
     current_hour = datetime.now().strftime('%H')
     current_value = prices.query('hour == @current_hour')['cents_kwh'].values[0]
