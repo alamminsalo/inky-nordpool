@@ -7,7 +7,10 @@ import numpy as np
 import pandas as pd
 from datetime import date, datetime, timedelta
 
-INKYWHAT_DPI=120
+# dictionary containing different dpi settings per display
+dpi = dict(
+    inky_what=120,
+)
 
 def vat_fin() -> float:
     "Returns finnish VAT amount"
@@ -28,22 +31,22 @@ def get_spotprices() -> pd.DataFrame:
     df['hour'] = df.start.dt.strftime('%H')
     return df
 
-def pricesfig(prices: pd.DataFrame, dpi: int = INKYWHAT_DPI) -> Image:
+def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> Image:
     plt.rcParams.update({
         'font.size': 9,
        # 'font.family': 'monospace',
         'font.weight': 'bold',
     })
     fig = plt.figure(
-        figsize=(400/dpi, 300/dpi), dpi=dpi
+        figsize=(width_px/dpi, height_px/dpi), dpi=dpi
     )
     ax = fig.add_subplot(111)
     ax.plot(
-        df.hour,
-        df.cents_kwh,
+        prices.hour,
+        prices.cents_kwh,
         'black',
     )
-    plt.xticks(df[df.index % 2 != 0].hour)
+    plt.xticks(prices[prices.index % 2 != 0].hour)
 
     current_hour = datetime.now().strftime('%H')
     current_value = prices.query('hour == @current_hour')['cents_kwh'].values[0]
@@ -85,14 +88,23 @@ def pricesfig(prices: pd.DataFrame, dpi: int = INKYWHAT_DPI) -> Image:
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     return Image.fromarray(data)
 
-def inky_draw(img: Image):
+def update_display():
     from inky.auto import auto
     display = auto()
+
+    # Get electricity prices as pandas dataframe
+    df = get_spotprices()
+
+    # Render plot image using matplotlib and pillow
+    img = pricesfig(df, display.width, display.height, dpi['inky_what'])
+
+    # Resize image to ensure its the correct display size and convert it to 1-bit black and white image.
+    # Invert the values because the display shows black and white image in inverse.
     img = ImageOps.invert(img).resize(display.resolution).convert('P').convert('1')
+
+    # Display image on screen
     display.set_image(img)
     display.show()
 
 if __name__ == "__main__":
-    df = get_spotprices()
-    img = pricesfig(df)
-    inky_draw(img)
+    update_display()
