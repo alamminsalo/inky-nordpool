@@ -16,3 +16,4 @@
 * Run 'pip install -r requirements.txt' in the repo folder to install needed python packages.
 * Try running with 'python update.py' to ensure everything works.
 * Add a cronjob to automatically run the script every hour.
+* To disable the leds, I followed [this guide](https://www.paulligocki.com/how-to-disable-lights-on-raspberry-pi/).
