@@ -42,7 +42,6 @@ def get_spotprices() -> pd.DataFrame:
 def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> Image:
     plt.rcParams.update({
         'font.size': 9,
-       # 'font.family': 'monospace',
         'font.weight': 'bold',
     })
     fig = plt.figure(
@@ -53,11 +52,13 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
         prices.hour,
         prices.cents_kwh,
         'black',
+        linewidth=1.2,
     )
     plt.xticks(prices[prices.index % 2 != 0].hour)
 
     # If not starting from the first hour draw vertical line to midnight
     if prices.hour.values[0] != "01":
+        print(prices.hour.values[0])
         ax.axvline("00")
 
     current_hour = datetime.now().strftime('%H')
@@ -77,7 +78,7 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
     )
     ax.text(
         0, 1.0,
-        f'Nyt: {fmt(current_value)}',
+        f'Nyt: {fmt(current_value)}c/kWh',
         horizontalalignment='left',
         verticalalignment='bottom',
         transform=ax.transAxes,
@@ -94,6 +95,7 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
         verticalalignment='bottom',
         transform=ax.transAxes
     )
+    fig.tight_layout()
     fig.canvas.draw()
 
     data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
