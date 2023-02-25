@@ -24,9 +24,9 @@ def get_spotprices() -> pd.DataFrame:
     prices_today = prices_spot.hourly(end_date=date.today(), areas=['FI'])['areas']['FI']['values']
     df = pd.DataFrame(prices_today)
 
-    # when current time is past 6pm,
+    # when current time is past 7pm,
     # also fetch next day and slice the middle 24-hour period
-    if datetime.now().hour >= 18:
+    if datetime.now().hour >= 19:
         prices_tomorrow = prices_spot.hourly(areas=['FI'])['areas']['FI']['values']
         df = pd.concat([df, pd.DataFrame(prices_tomorrow)], ignore_index=True).iloc[12:36]
 
@@ -57,7 +57,7 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
     plt.xticks(prices[prices.index % 2 != 0].hour)
 
     # If not starting from the first hour draw vertical line to midnight
-    if prices.hour.values[0] != "00":
+    if prices.hour.values[0] != "01":
         ax.axvline("00")
 
     current_hour = datetime.now().strftime('%H')
