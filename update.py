@@ -34,16 +34,13 @@ def render_figure(df: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
 
     # plot another column
     if len(df.columns) > 1:
-        ax2 = ax.twinx()
-        ax2.plot(
+        ax.twinx().plot(
             df.index,
             df[df.columns[1]],
             linestyle='--',
             color='black',
             linewidth=1,
-            label='Ulkolämpötila',
         )
-        ax2.legend()
 
     # Show only hours in x axis
     ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
