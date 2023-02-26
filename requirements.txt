@@ -1,4 +1,5 @@
 inky[rpi]
+fmiopendata
 git+https://github.com/kipe/nordpool.git@0.3.3
 matplotlib
 numpy

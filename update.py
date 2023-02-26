@@ -1,102 +1,83 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from nordpool import elspot
 from PIL import Image, ImageOps
 import numpy as np
 import pandas as pd
-from datetime import date, datetime, timedelta
-import argparse
+from datetime import datetime
+import data
+
+plt.rcParams.update({
+    'font.size': 8,
+    'font.weight': 'bold',
+})
 
 # dictionary containing different dpi settings per display
 dpi = dict(
     inky_what=120,
 )
 
-def vat_fin() -> float:
-    "Returns finnish VAT amount"
-    if date.today() < date(2023,5,1):
-        return 1.1
-    return 1.24
-
-def get_spotprices(currency: str, area: str) -> pd.DataFrame:
-    prices_spot = elspot.Prices(currency=currency)
-    prices_today = prices_spot.hourly(end_date=date.today(), areas=[area])['areas'][area]['values']
-    df = pd.DataFrame(prices_today)
-    now = datetime.now().replace(minute=0, second=0, microsecond=0)
-
-    # When current time is past 6pm,
-    # also fetch next day and slice the next 24-hour period
-    if now.hour >= 18:
-        prices_tomorrow = prices_spot.hourly(end_date=date.today() + timedelta(days=1), areas=[area])['areas'][area]['values']
-        df = pd.concat([df, pd.DataFrame(prices_tomorrow)], ignore_index=True).iloc[18:]
-
-    # Convert dates to local timezone
-    df['start'] = df['start'].dt.tz_convert(now.astimezone().tzinfo).dt.tz_localize(None)
-    df['end'] = df['end'].dt.tz_convert(now.astimezone().tzinfo).dt.tz_localize(None)
-
-    # Current time marker
-    df['current'] = df.start == now
-
-    # Convert price to cents/KWh and add VAT
-    df['value'] *= 0.1 * vat_fin()
-
-    return df
-
-def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> Image:
-    plt.rcParams.update({
-        'font.size': 8,
-        'font.weight': 'bold',
-    })
+def render_figure(df: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> Image:
     fig = plt.figure(
         figsize=(width_px/dpi, height_px/dpi), dpi=dpi
     )
     ax = fig.add_subplot(111)
 
-    ax.plot(
-        prices.start.dt.tz_localize(None),
-        prices.value,
+    # main plot
+    ax.step(
+        df.index,
+        df[df.columns[0]],
         color='black',
         linewidth=1,
+        where='post',
     )
+
+    # plot another column
+    if len(df.columns) > 1:
+        ax2 = ax.twinx()
+        ax2.plot(
+            df.index,
+            df[df.columns[1]],
+            linestyle='--',
+            color='black',
+            linewidth=1,
+            label='Ulkolämpötila',
+        )
+        ax2.legend()
+
+    # Show only hours in x axis
     ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
 
     # Get current time, current value, min and max scalars
-    current_time, current_value = prices.query('current')[['start','value']].values[0]
-    min_value=prices['value'].min()
-    max_value=prices['value'].max()
+    current_time = datetime.now().replace(minute=0, second=0, microsecond=0)
+    current_price, current_temp = df.query('index == @current_time').values[0]
 
-    # Value formatter
+    # Format row to string
     fmt = lambda x: f'{"{0:0.2f}".format(x)}'
 
-    # Arrow pointing to current value
-    ax.annotate(
-        " ",
-        xy=(current_time, current_value),
-        horizontalalignment='center',
-        arrowprops=dict(facecolor='black'),
-    )
-    # Current value textbox
+    # Show current values as text
     ax.text(
-        0, 1.0,
-        f'Nyt: {fmt(current_value)} snt/kWh',
+        0.0, 1.0,
+        f'Nyt: {fmt(current_price)} snt/kWh',
         horizontalalignment='left',
         verticalalignment='bottom',
         transform=ax.transAxes,
-        bbox=dict(
-            boxstyle='square',
-            facecolor='white',
-        ),
-
     )
-    # Min, max values text
     ax.text(
         1.0, 1.0,
-        f'Min: {fmt(min_value)} Max: {fmt(max_value)}',
+        f'Lämpötila: {current_temp} °C',
         horizontalalignment='right',
         verticalalignment='bottom',
-        transform=ax.transAxes
+        transform=ax.transAxes,
     )
+    # Arrow pointing to current value
+    ax.annotate(
+        " ",
+        xy=(current_time + timedelta(minutes=30), current_price),
+        horizontalalignment='center',
+        arrowprops=dict(facecolor='black'),
+    )
+
     fig.tight_layout()
     fig.canvas.draw()
 
@@ -104,15 +85,15 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     return Image.fromarray(data)
 
-def update_display(currency: str, area: str):
+def update_display():
     from inky.auto import auto
     display = auto()
 
-    # Get electricity prices as pandas dataframe
-    df = get_spotprices(currency, area)
+    # Get electricity prices, temperature as pandas dataframe
+    df = data.collect_df()
 
     # Render plot image using matplotlib and pillow
-    img = pricesfig(df, display.width, display.height, dpi['inky_what'])
+    img = render_figure(df, display.width, display.height, dpi['inky_what'])
 
     # Resize image to ensure its the correct display size and convert it to 1-bit black and white image.
     # Invert the values because the display shows black and white image in inverse.
@@ -123,9 +104,4 @@ def update_display(currency: str, area: str):
     display.show()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog = 'inky-nordpool.update', description = 'Fetches nordpool data and displays it on inky eink display')
-    parser.add_argument('-c', '--currency', default='EUR')
-    parser.add_argument('-a', '--area', default='FI')
-    args = parser.parse_args()
-
-    update_display(args.currency, args.area)
+    update_display()
