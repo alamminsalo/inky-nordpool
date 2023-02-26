@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageOps
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import data
 
 plt.rcParams.update({
