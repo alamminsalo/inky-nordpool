@@ -63,7 +63,7 @@ def render_figure(df: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
     )
     ax.text(
         1.0, 1.0,
-        f'Lämpötila: {current_temp} °C',
+        f'{current_temp} °C',
         horizontalalignment='right',
         verticalalignment='bottom',
         transform=ax.transAxes,
