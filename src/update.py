@@ -5,7 +5,8 @@ from PIL import Image, ImageOps
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-import data
+
+from data import collect_df
 
 plt.rcParams.update({
     'font.size': 8,
@@ -83,11 +84,16 @@ def render_figure(df: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
     return Image.fromarray(data)
 
 def update_display():
-    from inky.auto import auto
-    display = auto()
-
     # Get electricity prices, temperature as pandas dataframe
-    df = data.collect_df()
+    df = collect_df()
+
+    try:
+        from inky.auto import auto
+        display = auto()
+    except:
+        print('Cannot import inky. Skipping image rendering...')
+        print(df)
+        return
 
     # Render plot image using matplotlib and pillow
     img = render_figure(df, display.width, display.height, dpi['inky_what'])
