@@ -6,6 +6,7 @@ from PIL import Image, ImageOps
 import numpy as np
 import pandas as pd
 from datetime import date, datetime, timedelta
+import argparse
 
 # dictionary containing different dpi settings per display
 dpi = dict(
@@ -18,67 +19,67 @@ def vat_fin() -> float:
         return 1.1
     return 1.24
 
-def get_spotprices() -> pd.DataFrame:
-    prices_spot = elspot.Prices()
-
-    prices_today = prices_spot.hourly(end_date=date.today(), areas=['FI'])['areas']['FI']['values']
+def get_spotprices(currency: str, area: str) -> pd.DataFrame:
+    prices_spot = elspot.Prices(currency=currency)
+    prices_today = prices_spot.hourly(end_date=date.today(), areas=[area])['areas'][area]['values']
     df = pd.DataFrame(prices_today)
+    now = datetime.now().replace(minute=0, second=0, microsecond=0)
 
-    # when current time is past 7pm,
-    # also fetch next day and slice the middle 24-hour period
-    if datetime.now().hour >= 19:
-        prices_tomorrow = prices_spot.hourly(areas=['FI'])['areas']['FI']['values']
-        df = pd.concat([df, pd.DataFrame(prices_tomorrow)], ignore_index=True).iloc[12:36]
+    # When current time is past 6pm,
+    # also fetch next day and slice the next 24-hour period
+    if now.hour >= 18:
+        prices_tomorrow = prices_spot.hourly(end_date=date.today() + timedelta(days=1), areas=[area])['areas'][area]['values']
+        df = pd.concat([df, pd.DataFrame(prices_tomorrow)], ignore_index=True).iloc[18:]
 
-    df['start'] = df['start'].dt.tz_convert('Europe/Helsinki')
-    df['end'] = df['end'].dt.tz_convert('Europe/Helsinki')
+    # Convert dates to local timezone
+    df['start'] = df['start'].dt.tz_convert(now.astimezone().tzinfo).dt.tz_localize(None)
+    df['end'] = df['end'].dt.tz_convert(now.astimezone().tzinfo).dt.tz_localize(None)
 
-    # Convert price to EUR/KWh and add VAT
-    df['value'] *= 0.001 * vat_fin()
-    df['cents_kwh'] = df['value'] * 100
-    df['hour'] = df.start.dt.strftime('%H')
+    # Current time marker
+    df['current'] = df.start == now
+
+    # Convert price to cents/KWh and add VAT
+    df['value'] *= 0.1 * vat_fin()
+
     return df
 
 def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> Image:
     plt.rcParams.update({
-        'font.size': 9,
+        'font.size': 8,
         'font.weight': 'bold',
     })
     fig = plt.figure(
         figsize=(width_px/dpi, height_px/dpi), dpi=dpi
     )
     ax = fig.add_subplot(111)
+
     ax.plot(
-        prices.hour,
-        prices.cents_kwh,
-        'black',
-        linewidth=1.2,
+        prices.start.dt.tz_localize(None),
+        prices.value,
+        color='black',
+        linewidth=1,
     )
-    plt.xticks(prices[prices.index % 2 != 0].hour)
+    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
 
-    # If not starting from the first hour draw vertical line to midnight
-    if prices.hour.values[0] != "01":
-        print(prices.hour.values[0])
-        ax.axvline("00")
+    # Get current time, current value, min and max scalars
+    current_time, current_value = prices.query('current')[['start','value']].values[0]
+    min_value=prices['value'].min()
+    max_value=prices['value'].max()
 
-    current_hour = datetime.now().strftime('%H')
-    current_value = prices.query('hour == @current_hour')['cents_kwh'].values[0]
-
-    min_value=prices['cents_kwh'].min()
-    max_value=prices['cents_kwh'].max()
-
+    # Value formatter
     fmt = lambda x: f'{"{0:0.2f}".format(x)}'
 
-    # arrow pointing to current value
+    # Arrow pointing to current value
     ax.annotate(
         " ",
-        xy=(current_hour, current_value),
+        xy=(current_time, current_value),
         horizontalalignment='center',
         arrowprops=dict(facecolor='black'),
     )
+    # Current value textbox
     ax.text(
         0, 1.0,
-        f'Nyt: {fmt(current_value)}c/kWh',
+        f'Nyt: {fmt(current_value)} snt/kWh',
         horizontalalignment='left',
         verticalalignment='bottom',
         transform=ax.transAxes,
@@ -86,8 +87,9 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
             boxstyle='square',
             facecolor='white',
         ),
-        fontsize=10,
+
     )
+    # Min, max values text
     ax.text(
         1.0, 1.0,
         f'Min: {fmt(min_value)} Max: {fmt(max_value)}',
@@ -102,12 +104,12 @@ def pricesfig(prices: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     return Image.fromarray(data)
 
-def update_display():
+def update_display(currency: str, area: str):
     from inky.auto import auto
     display = auto()
 
     # Get electricity prices as pandas dataframe
-    df = get_spotprices()
+    df = get_spotprices(currency, area)
 
     # Render plot image using matplotlib and pillow
     img = pricesfig(df, display.width, display.height, dpi['inky_what'])
@@ -121,4 +123,9 @@ def update_display():
     display.show()
 
 if __name__ == "__main__":
-    update_display()
+    parser = argparse.ArgumentParser(prog = 'inky-nordpool.update', description = 'Fetches nordpool data and displays it on inky eink display')
+    parser.add_argument('-c', '--currency', default='EUR')
+    parser.add_argument('-a', '--area', default='FI')
+    args = parser.parse_args()
+
+    update_display(args.currency, args.area)
