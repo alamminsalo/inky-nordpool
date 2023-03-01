@@ -35,13 +35,19 @@ def render_figure(df: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
 
     # plot another column
     if len(df.columns) > 1:
-        ax.twinx().plot(
+        ax2 = ax.twinx()
+        ax2.plot(
             df.index,
             df[df.columns[1]],
             linestyle='--',
             color='black',
             linewidth=1,
         )
+        ymin = df[df.columns[1]].min()
+        ymax = df[df.columns[1]].max()
+        ymin = min(ymin - (ymin % 10) - 10, -30)
+        ymax = max(ymax - (ymax % 10) + 10, 30)
+        ax2.set_ylim([ymin, ymax])
 
     # Show only hours in x axis
     ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
