@@ -94,8 +94,8 @@ def update_display():
     df = collect_df()
 
     try:
-        from inky.auto import auto
-        display = auto()
+        from inky import InkyWHAT
+        display = InkyWHAT('black')
     except:
         print('Cannot import inky. Skipping image rendering...')
         print(df)
