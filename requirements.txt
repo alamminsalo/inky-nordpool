@@ -1,7 +1,7 @@
-inky[rpi]
+inky[rpi]==1.5.0
 fmiopendata
-git+https://github.com/kipe/nordpool.git@0.3.3
-matplotlib
-numpy
-pandas
-Pillow
+nordpool
+matplotlib==3.7.1
+numpy==1.25
+pandas==2.0
+pillow
