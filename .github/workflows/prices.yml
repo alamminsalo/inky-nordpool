@@ -14,11 +14,11 @@ jobs:
     steps:
       # Step 1: Check out the repository to get access to the Python script
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Step 2: Set up Python environment
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'  # specify version if necessary, e.g., '3.9'
 
