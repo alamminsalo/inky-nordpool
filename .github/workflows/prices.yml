@@ -31,9 +31,7 @@ jobs:
 
       # Step 4: Run the Python script to export the data.csv file
       - name: Export csv
-        run:
-          - python src/export_data.py
-          - mkdir -p pages && mv data.csv pages
+        run: python src/export_data.py && mkdir -p pages && mv data.csv pages
 
       - name: Upload static files as artifact
         id: data-publish
