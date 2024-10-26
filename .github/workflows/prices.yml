@@ -8,7 +8,7 @@ on:
     - cron: '0 6,18 * * *'
 
 jobs:
-  fetch-and-publish-csv:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,11 +31,34 @@ jobs:
 
       # Step 4: Run the Python script to export the data.csv file
       - name: Export csv
-        run: python src/export_data.py
+        run:
+          - python src/export_data.py
+          - mkdir -p pages && mv data.csv pages
 
-      # Step 5: Upload the prices.csv file as an artifact
-      - name: Upload csv
-        uses: actions/upload-artifact@v4
+      - name: Upload static files as artifact
+        id: data-publish
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: data-csv
-          path: data.csv
+          path: pages
+
+  # Deploy job
+  deploy:
+    # Add a dependency to the build job
+    needs: build
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: data-publish
+        uses: actions/deploy-pages@v4 # or specific "vX.X.X" version tag for this action
