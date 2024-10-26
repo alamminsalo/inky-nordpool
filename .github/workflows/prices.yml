@@ -4,8 +4,8 @@ name: Fetch and publish data.csv
 on:
   workflow_dispatch:
   schedule:
-    # Run at 6:00 AM and 6:00 PM UTC every day
-    - cron: '0 6,18 * * *'
+    # Run at 6:30 AM and 6:30 PM UTC every day
+    - cron: '30 6,18 * * *'
 
 jobs:
   build:
