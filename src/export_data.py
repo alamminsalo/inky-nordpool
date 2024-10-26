@@ -1,3 +1,3 @@
 from data import collect_df
 
-collect_df().to_csv('data.csv')
+collect_df().to_csv('data.csv', index=False)
