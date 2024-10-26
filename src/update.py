@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
-#from data import collect_df
-
 plt.rcParams.update({
     'font.size': 8,
     'font.weight': 'bold',
@@ -91,7 +89,8 @@ def render_figure(df: pd.DataFrame, width_px: int, height_px: int, dpi: int) -> 
 
 def update_display():
     # Get electricity prices, temperature as pandas dataframe
-    df = pd.read_csv('https://alamminsalo.github.io/inky-nordpool/data.csv', index_col='timestamp', parse_dates=['timestamp'])
+    df = pd.read_csv('https://alamminsalo.github.io/inky-nordpool/data.csv', parse_dates=['timestamp'], index_col='timestamp')
+    df.index = df.index.tz_localize('utc').tz_convert('Europe/Helsinki').tz_localize(None)
 
     try:
         from inky.auto import auto
