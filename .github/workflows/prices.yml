@@ -1,0 +1,40 @@
+name: Fetch and publish data.csv
+
+# Trigger the workflow on a schedule
+on:
+  schedule:
+    # Run at 6:00 AM and 6:00 PM UTC every day
+    - cron: '0 6,18 * * *'
+
+jobs:
+  fetch-and-publish-csv:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository to get access to the Python script
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'  # specify version if necessary, e.g., '3.9'
+
+      # Step 3: Install dependencies if any are specified in requirements.txt
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      # Step 4: Run the Python script to export the data.csv file
+      - name: Export csv
+        run: python src/export_data.py
+
+      # Step 5: Upload the prices.csv file as an artifact
+      - name: Upload csv
+        uses: actions/upload-artifact@v3
+        with:
+          name: data-csv
+          path: data.csv
