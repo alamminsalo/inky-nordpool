@@ -3,16 +3,13 @@ on:
   schedule:
     - cron: "0 0 * * *"
 permissions:
-  contents: write
+  actions: write
 jobs:
   cronjob-based-github-action:
     name: Cronjob based github action
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # - step1
       # - step 2
       # - step n, use it as the last step
-      - uses: gautamkrishnar/keepalive-workflow@v2
-        with:
-          use_api: false
+      - uses: gautamkrishnar/keepalive-workflow@v2 # using the workflow with default settings
