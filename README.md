@@ -1,6 +1,4 @@
-# Spot Electricity Prices Tracker Display
-
-![image](./0D01015F-70A0-4FE5-BB09-B739DB9D65DE.jpeg)
+# Spot Electricity Prices Display for Pi
 
 ## Components Used
 
